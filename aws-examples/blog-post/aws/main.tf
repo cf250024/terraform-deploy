@@ -75,6 +75,10 @@ module "eks" {
     disk_size = 50
   }
 
+  workers_group_defaults = {
+  	root_volume_type = "gp2"
+  }
+  
   worker_groups = [
     {
       name                    = "core"
@@ -108,8 +112,8 @@ module "eks" {
       override_instance_types = ["m5.2xlarge", "m4.2xlarge"]
       spot_instance_pools     = 2
       asg_max_size            = 100
-      asg_min_size            = 0
-      asg_desired_capacity    = 0
+      asg_min_size            = 1
+      asg_desired_capacity    = 1
 
       # Use this to set labels / taints
       kubelet_extra_args = "--node-labels=node-role.kubernetes.io/user=user,hub.jupyter.org/node-purpose=user --register-with-taints hub.jupyter.org/dedicated=user:NoSchedule"
@@ -142,8 +146,8 @@ module "eks" {
       override_instance_types = ["r5.2xlarge", "r4.2xlarge"]
       spot_instance_pools     = 2
       asg_max_size            = 100
-      asg_min_size            = 0
-      asg_desired_capacity    = 0
+      asg_min_size            = 1
+      asg_desired_capacity    = 1
 
       # Use this to set labels / taints
       kubelet_extra_args = "--node-labels node-role.kubernetes.io/worker=worker,k8s.dask.org/node-purpose=worker --register-with-taints k8s.dask.org/dedicated=worker:NoSchedule"
