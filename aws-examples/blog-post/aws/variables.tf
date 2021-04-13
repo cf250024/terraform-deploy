@@ -11,7 +11,7 @@ variable "cluster_name" {
 }
 
 variable "vpc_name" {
-  default = "Default"
+  default = "jupyter"
 }
 
 variable "map_accounts" {
