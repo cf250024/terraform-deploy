@@ -1,9 +1,9 @@
 variable "region" {
-  default = "us-east-1"
+  default = "us-west-2"
 }
 
 variable "cluster_name" {
-  default = "test-cluster-change-name"
+  default = "jupyter"
 }
 
 variable "map_accounts" {

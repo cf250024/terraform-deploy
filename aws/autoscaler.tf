@@ -1,11 +1,7 @@
-terraform {
-  required_version = ">= 0.12.6"
-}
 
 # Create IAM role + automatically make it available to cluster autoscaler service account
 module "iam_assumable_role_admin" {
   source                        = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
-  version                       = "~> v2.6.0"
   create_role                   = true
   role_name                     = "${module.eks.cluster_id}-cluster-autoscaler"
   provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
@@ -69,9 +65,9 @@ resource "helm_release" "cluster-autoscaler" {
   name = "cluster-autoscaler"
   # Check that this is good, kube-system should already exist
   namespace = "kube-system"
-  repository = data.helm_repository.stable.metadata[0].name
+  repository = "https://charts.helm.sh/stable"
   chart = "cluster-autoscaler"
-  version = "7.2.0"
+  # version = "7.2.0"
 
   values = [
     file("cluster-autoscaler-values.yml")
