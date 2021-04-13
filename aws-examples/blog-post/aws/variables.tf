@@ -1,17 +1,17 @@
 variable "region" {
-  default = "us-east-1"
+  default = "us-west-2"
 }
 
 variable "profile" {
-  default = "terraform-bot"
+  default = "default"
 }
 
 variable "cluster_name" {
-  default = "test-cluster-change-name"
+  default = "jupyter"
 }
 
 variable "vpc_name" {
-  default = "vpc-test-cluster-change-name"
+  default = "Default"
 }
 
 variable "map_accounts" {
