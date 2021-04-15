@@ -34,11 +34,6 @@ resource "aws_efs_mount_target" "home_dirs_targets" {
   security_groups = [ aws_security_group.home_dirs_sg.id ]
 }
 
-# data "helm_repository" "stable" {
-#   name = "stable"
-#   url = "https://kubernetes-charts.storage.googleapis.com"
-# }
-
 resource "kubernetes_namespace" "support" {
   metadata {
     name = "support"
@@ -50,6 +45,7 @@ resource "helm_release" "efs-provisioner" {
   namespace = kubernetes_namespace.support.metadata.0.name
   repository = "https://charts.helm.sh/stable"
   chart = "efs-provisioner"
+  version = "0.13.2"
 
   set{
     name = "efsProvisioner.efsFileSystemId"

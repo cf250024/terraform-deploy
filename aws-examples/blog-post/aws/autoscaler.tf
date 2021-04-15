@@ -3,7 +3,7 @@
 module "iam_assumable_role_admin" {
   source                        = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
   create_role                   = true
-  role_name                     = "cluster-autoscaler-blogpost"
+  role_name                     = "cluster-autoscaler-jupyter"
   provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
   role_policy_arns              = [aws_iam_policy.cluster_autoscaler.arn]
   oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:cluster-autoscaler-aws-cluster-autoscaler"]
@@ -67,6 +67,7 @@ resource "helm_release" "cluster-autoscaler" {
   namespace   = "kube-system"
   repository  = "https://charts.helm.sh/stable"
   chart       = "cluster-autoscaler"
+  version     = "8.0.0"
 
   # Terraform keeps this in state, so we get it automatically!
   set{
