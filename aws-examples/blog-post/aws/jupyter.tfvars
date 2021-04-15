@@ -5,7 +5,7 @@ region = "us-west-2"
 profile = "default"
 
 # Name of your vpc
-vpc_name = "Sandbox VPC"
+vpc_name = "jupyter"
 
 # Name of your cluster
 cluster_name = "jupyter"
