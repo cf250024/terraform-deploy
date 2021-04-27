@@ -34,44 +34,89 @@ resource "aws_efs_mount_target" "home_dirs_targets" {
   security_groups = [ aws_security_group.home_dirs_sg.id ]
 }
 
-resource "kubernetes_namespace" "support" {
-  metadata {
-    name = "support"
+resource "helm_release" "efs-provisioner" {
+  name = "efs-provisioner"
+  namespace = "kube-system"
+  repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver"
+  chart = "aws-efs-csi-driver"
+  version = "1.2.2"
+
+  values = [
+    file("efsvalues.yaml")
+  ]
+
+  set {
+    name = "storageClasses[0].parameters.fileSystemId"
+    value = aws_efs_file_system.home_dirs.id
   }
 }
 
-resource "helm_release" "efs-provisioner" {
-  name = "efs-provisioner"
-  namespace = kubernetes_namespace.support.metadata.0.name
-  repository = "https://charts.helm.sh/stable"
-  chart = "efs-provisioner"
-  version = "0.13.2"
-
-  set{
-    name = "efsProvisioner.efsFileSystemId"
-    value = aws_efs_file_system.home_dirs.id
+resource "aws_iam_policy" "aws_efs_csi_driver" {
+  name   = "efs-csi-policy"
+  policy = <<-EOD
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "elasticfilesystem:DescribeAccessPoints",
+          "elasticfilesystem:DescribeFileSystems"
+        ],
+        "Resource": "*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "elasticfilesystem:CreateAccessPoint"
+        ],
+        "Resource": "*",
+        "Condition": {
+          "StringLike": {
+            "aws:RequestTag/efs.csi.aws.com/cluster": "true",
+            "aws:RequestTag/cluster-name": "${var.cluster_name}"
+          }
+        }
+      },
+      {
+        "Effect": "Allow",
+        "Action": "elasticfilesystem:DeleteAccessPoint",
+        "Resource": "*",
+        "Condition": {
+          "StringEquals": {
+            "aws:ResourceTag/efs.csi.aws.com/cluster": "true",
+            "aws:ResourceTag/cluster-name": "${var.cluster_name}"
+          }
+        }
+      }
+    ]
   }
+  EOD
+}
 
-  set {
-      name = "efsProvisioner.awsRegion"
-      value = var.region
-  }
+resource "aws_iam_role" "efs_csi_role" {
+  name = "efs-csi-role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::653480936020:oidc-provider/oidc.eks.us-west-2.amazonaws.com/id/0397DABF2ABB69344C70010FD2582753"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.us-west-2.amazonaws.com/id/0397DABF2ABB69344C70010FD2582753:sub": "system:serviceaccount:kube-system:efs-csi-controller-sa"
+        }
+      }
+    }
+  ]}
+EOF
+}
 
-  set {
-      # We don't entirely know the effects of dynamic gid allocation,
-      # particularly on the ability to re-use EFS when we recreate
-      # clusters. Turn it off for now.
-      name = "efsProvisioner.storageClass.gidAllocate.enabled"
-      value = false
-  }
-
-  set {
-    name = "efsProvisioner.path"
-    value = "/"
-  }
-
-  set {
-    name = "efsProvisioner.provisionerName"
-    value = "aws.amazon.com/efs"
-  }
+resource "aws_iam_role_policy_attachment" "efs-csi-attach" {
+  role       = "${aws_iam_role.efs_csi_role.name}"
+  policy_arn = "${aws_iam_policy.aws_efs_csi_driver.arn}"
 }

@@ -1,0 +1,17 @@
+serviceAccount:
+  controller:
+    create: true
+    annotations: 
+      eks.amazonaws.com/role-arn: arn:aws:iam::653480936020:role/efs-csi-role
+    name: efs-csi-controller-sa
+
+storageClasses:
+  - name: aws-efs
+    annotations:
+      storageclass.kubernetes.io/is-default-class: "true"
+    parameters:
+      provisioningMode: efs-ap
+      directoryPerms: "700"
+      gidRangeStart: "1000"
+      gidRangeEnd: "2000"
+      basePath: "/"
