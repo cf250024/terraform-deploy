@@ -4,7 +4,7 @@ module "iam_assumable_role_admin_efs" {
   create_role                   = true
   role_name                     = "efs-csi-driver-jupyter"
   provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
-  role_policy_arns              = [aws_iam_policy.efs-csi-driver.arn]
+  role_policy_arns              = [aws_iam_policy.aws_efs_csi_driver.arn]
   oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:efs-csi-controller-sa"]
 
   tags = {
@@ -13,68 +13,45 @@ module "iam_assumable_role_admin_efs" {
   }
 }
 
-resource "aws_iam_policy" "efs-csi-driver" {
+resource "aws_iam_policy" "aws_efs_csi_driver" {
   name_prefix = "cluster-efs"
   description = "EKS efs-csi-driver policy for cluster ${module.eks.cluster_id}"
-  policy      = data.aws_iam_policy_document.efs-csi-driver.json
+  policy      = data.aws_iam_policy_document.aws_efs_csi_driver.json
 }
 
-data "aws_iam_policy_document" "efs-csi-driver" {
+data "aws_iam_policy_document" "aws_efs_csi_driver" {
   statement {
-    sid       = "efs1"
     effect    = "Allow"
-
     actions   = [
       "elasticfilesystem:DescribeAccessPoints",
       "elasticfilesystem:DescribeFileSystems",
     ]
-
     resources = ["*"]
   }
 
   statement {
-    sid        = "efs2"
     effect     = "Allow"
-
     actions    = [
       "elasticfilesystem:CreateAccessPoint",
     ]
-
     resources  = ["*"]
-
     condition {
       test     = "StringEquals"
       variable = "aws:RequestTag/efs.csi.aws.com/cluster"
       values   = ["true"]
     }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestTag/cluster-name"
-      values   = ["${var.cluster_name}"]
-    }
   }
 
   statement {
-    sid        = "efs3"
     effect     = "Allow"
-
     actions    = [
       "elasticfilesystem:DeleteAccessPoint",
     ]
-
     resources  = ["*"]
-
     condition {
       test     = "StringEquals"
       variable = "aws:ResourceTag/efs.csi.aws.com/cluster"
       values   = ["true"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestTag/cluster-name"
-      values   = ["${var.cluster_name}"]
     }
   }
 }
@@ -94,8 +71,6 @@ resource "aws_security_group" "home_dirs_sg" {
 
     # FIXME: Is ther a way to do this without CIDR block copy/pasta
     cidr_blocks = [ "172.16.0.0/16"]
-    # FIXME: Do we need this security_groups here along with cidr_blocks
-    security_groups = [ module.eks.worker_security_group_id ]
     from_port        = 2049
     to_port          = 2049
     protocol         = "tcp"

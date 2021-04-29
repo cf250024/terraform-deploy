@@ -2,9 +2,9 @@ storageClasses:
   - name: aws-efs
     annotations:
       storageclass.kubernetes.io/is-default-class: "true"
+    provisioner: efs.csi.aws.com
+    mountOptions:
+      - tls
     parameters:
       provisioningMode: efs-ap
       directoryPerms: "700"
-      gidRangeStart: "1000"
-      gidRangeEnd: "2000"
-      basePath: "/"
