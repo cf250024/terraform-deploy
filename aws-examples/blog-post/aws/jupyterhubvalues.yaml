@@ -1,0 +1,19 @@
+scheduling:
+  podPriority:
+    enabled: true
+  userPlaceholder:
+    replicas: 3
+
+proxy:
+  secretToken: '8d851aefe2f2502cea16ede993feacb2bdbe02194af39688fcaa60b96d0cef10'
+
+singleuser:
+  defaultUrl: '/lab'
+  storage:
+    dynamic:
+     storageClass: aws-efs
+  cpu:
+    guarantee: 0.5
+  userPods:
+    nodeAffinity:
+      matchNodePurpose: require

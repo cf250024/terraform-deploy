@@ -1,3 +1,41 @@
+terraform {
+  required_version = ">= 0.15.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 3.38.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.1.2"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.1.0"
+    }
+    cloudinit = {
+      source  = "hashicorp/cloudinit"
+      version = ">= 2.2.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = ">= 2.1.0"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = ">= 3.1.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.1.0"
+    }
+    template = {
+      source  = "hashicorp/random"
+      version = ">= 2.2.0"
+    }
+  }
+}
 
 provider "aws" {
   region  = var.region
@@ -26,16 +64,16 @@ data "aws_availability_zones" "available" {
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
 
-  name                 = var.vpc_name
-  cidr                 = "172.16.0.0/16"
+  name                 = "${var.cluster_name}-vpc"
+  cidr                 = var.cidr
   azs                  = data.aws_availability_zones.available.names
 
-  public_subnets       = ["172.16.1.0/24", "172.16.2.0/24", "172.16.3.0/24"]
-  private_subnets      = ["172.16.4.0/24", "172.16.5.0/24", "172.16.6.0/24"]
+  public_subnets       = var.public_subnets
+  private_subnets      = var.private_subnets
   enable_dns_hostnames = true
   enable_dns_support   = true
-  enable_nat_gateway   = true
-  single_nat_gateway   = true
+  enable_nat_gateway   = var.use_private_subnets
+  single_nat_gateway   = var.use_private_subnets
 
   tags = {
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
@@ -57,9 +95,9 @@ module "vpc" {
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
   cluster_name    = var.cluster_name
-  cluster_version = "1.18"
+  cluster_version = "1.19"
 
-  subnets         = module.vpc.private_subnets
+  subnets      = var.use_private_subnets ? module.vpc.private_subnets : module.vpc.public_subnets
   vpc_id          = module.vpc.vpc_id
   enable_irsa     = true
 
@@ -87,6 +125,7 @@ module "eks" {
       asg_desired_capacity    = 1
       instance_type           = "t3a.medium"
       subnets                 = [module.vpc.private_subnets[0]]
+      root_volume_size        = 50
 
       # Use this to set labels / taints
       kubelet_extra_args      = "--node-labels=hub.jupyter.org/node-purpose=core"
@@ -114,6 +153,7 @@ module "eks" {
       asg_max_size            = 100
       asg_min_size            = 0
       asg_desired_capacity    = 0
+      root_volume_size        = 50
 
       # Use this to set labels / taints
       kubelet_extra_args = "--node-labels=hub.jupyter.org/node-purpose=user --register-with-taints=hub.jupyter.org/dedicated=user:NoSchedule"
@@ -148,6 +188,7 @@ module "eks" {
       asg_max_size            = 100
       asg_min_size            = 0
       asg_desired_capacity    = 0
+      root_volume_size        = 50
 
       # Use this to set labels / taints
       kubelet_extra_args = "--node-labels=k8s.dask.org/node-purpose=worker --register-with-taints=k8s.dask.org/dedicated=worker:NoSchedule"

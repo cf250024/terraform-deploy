@@ -4,8 +4,5 @@ region = "us-west-2"
 # Put the profile you will use for awcli
 profile = "default"
 
-# Name of your vpc
-vpc_name = "jupyter"
-
 # Name of your cluster
 cluster_name = "jupyter"

@@ -2,7 +2,7 @@
 module "iam_assumable_role_admin_efs" {
   source                        = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
   create_role                   = true
-  role_name                     = "efs-csi-driver-jupyter"
+  role_name                     = "efs-csi-driver-${var.cluster_name}"
   provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
   role_policy_arns              = [aws_iam_policy.aws_efs_csi_driver.arn]
   oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:efs-csi-controller-sa"]
@@ -63,20 +63,20 @@ resource "aws_efs_file_system" "home_dirs" {
 }
 
 resource "aws_security_group" "home_dirs_sg" {
-  name   = "home_dirs_sg"
+  name   = "${var.cluster_name}-home-dirs-sg"
   vpc_id = module.vpc.vpc_id
 
   # NFS
   ingress {
 
-    # FIXME: Is ther a way to do this without CIDR block copy/pasta
-    cidr_blocks = [ "172.16.0.0/16"]
+    cidr_blocks = [ var.cidr ]
     from_port        = 2049
     to_port          = 2049
     protocol         = "tcp"
   }
 
   tags = {
+    Name = "${var.cluster_name}-home-dirs-sg"
     Owner = split("/", data.aws_caller_identity.current.arn)[1]
     AutoTag_Creator = data.aws_caller_identity.current.arn
   }
